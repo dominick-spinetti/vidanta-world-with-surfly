@@ -622,14 +622,33 @@ Surfly.init(settings, function (initResult) {
                 var e = document.createElement("script");
                 e.type = "module";
                 e.src = u + "?" + Math.round(Date.now() / 1e3 / 3600);
+                e.onload = function () {
+                    cxone('init', '5748');
+                    cxone('guide', 'init');
+                    cxone('guide', 'setDesiredGuideWidth', '400px');
+                    cxone('guide', 'setDesiredGuideHeight', '600px');
+                    cxone('guide', 'setButtonSize', '70px');
+
+                    // VidantaWorld branded chat header
+                    setTimeout(() => {
+                        cxone('chat', 'setCustomCss', `
+                            [data-selector="HEADER"] {
+                                background-image: url("https://images.contentstack.io/v3/assets/blt440de00c5519ec3c/blt36649ad5e4aeb190/685c1cd4eff8a306ad9f0106/Logo_VW-2100x702-arriba.png?width=3840&quality=75&format=webp") !important;
+                                background-repeat: no-repeat !important;
+                                background-size: 70%;
+                                height: 85px !important;
+                            }
+                        `);
+                    }, 500);
+
+                    // Allow external message events
+                    cxone("chat", "setAllowedExternalMessageTypes", [
+                        "MESSAGE_SENT",
+                        "MESSAGE_RECEIVED",
+                    ]);
+                };
                 document.head.appendChild(e);
             })('cxone', 'https://web-modules-de-na1.niceincontact.com/loader/1/loader.js');
-
-            cxone('init', '5748');
-            cxone('guide', 'init');
-            cxone('guide', 'setDesiredGuideWidth', '400px');
-            cxone('guide', 'setDesiredGuideHeight', '600px');
-            cxone('guide', 'setButtonSize', '70px');
 
             // VidantaWorld branded chat header
             setTimeout(() => {
