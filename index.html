@@ -629,67 +629,70 @@ Surfly.init(settings, function (initResult) {
                     cxone('guide', 'setDesiredGuideHeight', '600px');
                     cxone('guide', 'setButtonSize', '70px');
 
-                    // VidantaWorld branded chat header
-                    setTimeout(() => {
-                        cxone('chat', 'setCustomCss', `
+                    cxone('chat', 'hideAssignedAgent');
+
+                    // Allow external message events (required for onAnyPushUpdate to fire)
+                    cxone("chat", "setAllowedExternalMessageTypes", [
+                        "MESSAGE_SENT",
+                        "MESSAGE_RECEIVED",
+                    ]);
+
+                    // ── Single CSS function — always applies ALL widget styles ──
+                    // botMode controls only the reply box visibility.
+                    // All other styles (header branding, etc.) are always included
+                    // so that no call ever wipes out a previous one.
+                    var BOT_USER_ID = 294069;
+                    var isBotMode = false;
+
+                    function applyAllChatCss(botMode) {
+                        var replyBoxCss = botMode
+                            ? `
+                                [data-selector="REPLY_BOX"],
+                                [data-selector="TEXTAREA"],
+                                [data-selector="INPUT"],
+                                [data-selector="SEND_BUTTON"] {
+                                    display: none !important;
+                                }
+                              `
+                            : `
+                                [data-selector="REPLY_BOX"],
+                                [data-selector="TEXTAREA"],
+                                [data-selector="INPUT"],
+                                [data-selector="SEND_BUTTON"] {
+                                    display: revert !important;
+                                }
+                              `;
+
+                        cxone("chat", "setCustomCss", `
+                            /* ── Branding ── */
                             [data-selector="HEADER"] {
                                 background-image: url("https://images.contentstack.io/v3/assets/blt440de00c5519ec3c/blt36649ad5e4aeb190/685c1cd4eff8a306ad9f0106/Logo_VW-2100x702-arriba.png?width=3840&quality=75&format=webp") !important;
                                 background-repeat: no-repeat !important;
                                 background-size: 70%;
                                 height: 85px !important;
                             }
+
+                            /* ── Reply box (bot vs. agent) ── */
+                            ${replyBoxCss}
                         `);
-                    }, 500);
+                    }
 
-                    // Allow external message events
-                    cxone("chat", "setAllowedExternalMessageTypes", [
-                        "MESSAGE_SENT",
-                        "MESSAGE_RECEIVED",
-                    ]);
+                    // Apply branding immediately on load (bot mode starts false)
+                    setTimeout(() => applyAllChatCss(false), 500);
 
-                    cxone('chat', 'hideAssignedAgent');
-
-                    // ── Bot-mode reply box toggle ──
-                    // Hides the text input when a bot is the assignee,
-                    // restores it when a human agent takes over
-                    (function () {
-                        var BOT_USER_ID = 294069;
-                        var isBotMode = false;
-
-                        function applyChatCss(botMode) {
-                            cxone("chat", "setCustomCss", botMode
-                                ? `
-                                    [data-selector="REPLY_BOX"],
-                                    [data-selector="TEXTAREA"],
-                                    [data-selector="INPUT"],
-                                    [data-selector="SEND_BUTTON"] {
-                                        display: none !important;
-                                    }
-                                  `
-                                : `
-                                    [data-selector="REPLY_BOX"],
-                                    [data-selector="TEXTAREA"],
-                                    [data-selector="INPUT"],
-                                    [data-selector="SEND_BUTTON"] {
-                                        display: revert !important;
-                                    }
-                                  `
-                            );
-                        }
-
-                        cxone("chat", "onAnyPushUpdate", function (payload) {
-                            if (payload?.eventType !== "CaseInboxAssigneeChanged") return;
-                            var assigneeUser = payload?.data?.case?.inboxAssigneeUser;
-                            var assigneeId   = payload?.data?.case?.inboxAssignee;
-                            var botMode =
-                                assigneeUser?.isBotUser === true ||
-                                assigneeUser?.id === BOT_USER_ID ||
-                                assigneeId === BOT_USER_ID;
-                            if (botMode === isBotMode) return;
-                            isBotMode = botMode;
-                            applyChatCss(isBotMode);
-                        });
-                    })();
+                    // Listen for assignee changes and re-apply full CSS with updated bot state
+                    cxone("chat", "onAnyPushUpdate", function (payload) {
+                        if (payload?.eventType !== "CaseInboxAssigneeChanged") return;
+                        var assigneeUser = payload?.data?.case?.inboxAssigneeUser;
+                        var assigneeId   = payload?.data?.case?.inboxAssignee;
+                        var botMode =
+                            assigneeUser?.isBotUser === true ||
+                            assigneeUser?.id === BOT_USER_ID ||
+                            assigneeId === BOT_USER_ID;
+                        if (botMode === isBotMode) return; // No change, skip re-render
+                        isBotMode = botMode;
+                        applyAllChatCss(isBotMode);
+                    });
                 };
                 document.head.appendChild(e);
             })('cxone', 'https://web-modules-de-na1.niceincontact.com/loader/1/loader.js');
