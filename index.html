@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VidantaWorld – Chat + Cobrowse Demo</title>
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a0a0a;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+
+        /* ── NAV ── */
+        .site-nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10,10,10,0.92);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            height: 64px;
+        }
+        .site-nav img.logo {
+            height: 36px;
+            object-fit: contain;
+        }
+        .site-nav ul {
+            list-style: none;
+            margin: 0; padding: 0;
+            display: flex; gap: 28px;
+        }
+        .site-nav ul li a {
+            color: rgba(255,255,255,0.75);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            transition: color .2s;
+        }
+        .site-nav ul li a:hover { color: #fff; }
+
+        /* ── HERO ── */
+        .hero {
+            position: relative;
+            width: 100%;
+            height: 580px;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .hero video {
+            position: absolute;
+            inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+        }
+        .hero-content {
+            position: relative;
+            text-align: center;
+            padding-bottom: 80px;
+        }
+        .hero-content h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            margin: 0 0 16px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.6);
+        }
+        .hero-content p {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.85);
+            margin: 0;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        /* ── BOOKING BAR ── */
+        .booking-bar {
+            background: #fff;
+            color: #111;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            max-width: 900px;
+            margin: -28px auto 0;
+            border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+            overflow: hidden;
+            position: relative;
+            z-index: 10;
+        }
+        .booking-bar .field {
+            flex: 1 1 160px;
+            padding: 16px 20px;
+            border-right: 1px solid #eee;
+            min-width: 130px;
+        }
+        .booking-bar .field:last-of-type { border-right: none; }
+        .booking-bar .field label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .booking-bar .field span {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #222;
+        }
+        .booking-bar .field .icon { margin-right: 6px; }
+        .booking-bar button.search-btn {
+            background: #D0066B;
+            color: #fff;
+            border: none;
+            padding: 0 36px;
+            height: 72px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            transition: background .2s;
+            flex-shrink: 0;
+        }
+        .booking-bar button.search-btn:hover { background: #b00059; }
+
+        /* ── SECTION WRAPPER ── */
+        .section { padding: 80px 32px; max-width: 1200px; margin: 0 auto; }
+        .section-title {
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            font-weight: 600;
+            margin: 0 0 40px;
+        }
+
+        /* ── HOTELS ── */
+        .hotels-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media(max-width:700px){ .hotels-grid { grid-template-columns: 1fr; } }
+
+        .hotel-card {
+            border-radius: 20px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 340px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .hotel-card .img-side {
+            position: relative;
+            min-height: 240px;
+        }
+        .hotel-card .img-side img {
+            position: absolute;
+            inset: 0; width: 100%; height: 100%;
+            object-fit: cover;
+        }
+        .hotel-card .info-side {
+            padding: 32px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 14px;
+        }
+        .hotel-card.bon .info-side {
+            background: linear-gradient(62deg, #3D0084 34%, #6500C8 102%, #8033FF 134%);
+        }
+        .hotel-card.jungala .info-side {
+            background: linear-gradient(304deg, #242A14 -7%, #3D471F 79%, #A6CC33 147%);
+        }
+        .hotel-card .info-side p {
+            margin: 0;
+            font-size: 0.88rem;
+            color: rgba(255,255,255,0.85);
+            line-height: 1.55;
+        }
+        .hotel-card .info-side a {
+            display: inline-block;
+            background: #D0066B;
+            color: #fff;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: background .2s;
+            text-align: center;
+        }
+        .hotel-card .info-side a:hover { background: #b00059; }
+        .hotel-card .info-side a.outline {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.5);
+        }
+        .hotel-card .info-side a.outline:hover { background: rgba(255,255,255,0.1); }
+        @media(max-width:550px){
+            .hotel-card { grid-template-columns: 1fr; }
+            .hotel-card .img-side { min-height: 200px; }
+        }
+
+        /* ── ENTERTAINMENT ── */
+        .ent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media(max-width:700px){ .ent-grid { grid-template-columns: 1fr; } }
+
+        .ent-card {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            height: 340px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 24px;
+        }
+        .ent-card img {
+            position: absolute;
+            inset: 0; width: 100%; height: 100%;
+            object-fit: cover;
+        }
+        .ent-card .gradient {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent 20%, rgba(0,0,0,0.82));
+        }
+        .ent-card .badge {
+            position: absolute;
+            top: 16px; left: 16px;
+            background: #fff;
+            color: #111;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 6px 10px;
+            border-radius: 8px;
+        }
+        .ent-card .ent-info { position: relative; }
+        .ent-card h3 { margin: 0 0 4px; font-size: 1.1rem; }
+        .ent-card p { margin: 0 0 14px; font-size: 0.83rem; color: rgba(255,255,255,0.8); }
+        .ent-card a {
+            display: inline-block;
+            background: #D0066B;
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            transition: background .2s;
+        }
+        .ent-card a:hover { background: #b00059; }
+
+        /* ── DINING ── */
+        .dining-scroll {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding-bottom: 16px;
+            scrollbar-width: thin;
+            scrollbar-color: #D0066B #222;
+        }
+        .dining-card {
+            flex-shrink: 0;
+            width: 280px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #1a1a1a;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .dining-card img { width: 100%; height: 180px; object-fit: cover; }
+        .dining-card .dining-info { padding: 16px; }
+        .dining-card h3 { margin: 0 0 6px; font-size: 1rem; }
+        .dining-card p { margin: 0 0 10px; font-size: 0.82rem; color: rgba(255,255,255,0.7); line-height: 1.5; }
+        .dining-meta { font-size: 0.78rem; color: rgba(255,255,255,0.55); display: flex; flex-direction: column; gap: 4px; }
+
+        /* ── COBROWSE CTA ── */
+        .cobrowse-cta {
+            background: linear-gradient(135deg, #1a0035 0%, #3D0084 60%, #6500C8 100%);
+            border-radius: 24px;
+            padding: 56px 40px;
+            text-align: center;
+            margin: 0 32px 80px;
+            max-width: 1136px;
+            margin-left: auto; margin-right: auto;
+        }
+        .cobrowse-cta h2 { font-size: 1.8rem; margin: 0 0 12px; }
+        .cobrowse-cta p { color: rgba(255,255,255,0.8); margin: 0 0 28px; font-size: 1rem; }
+        .cobrowse-cta .btn-row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .cobrowse-cta a, .cobrowse-cta button {
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all .2s;
+            border: 2px solid transparent;
+        }
+        .cobrowse-cta .btn-primary { background: #D0066B; color: #fff; }
+        .cobrowse-cta .btn-primary:hover { background: #b00059; }
+        .cobrowse-cta .btn-outline { background: transparent; border-color: rgba(255,255,255,0.5); color: #fff; }
+        .cobrowse-cta .btn-outline:hover { background: rgba(255,255,255,0.1); }
+
+        /* ── FOOTER ── */
+        footer {
+            background: #111;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            text-align: center;
+            padding: 32px;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.4);
+        }
+
+        /* ── CXONE / SURFLY z-index fixes ── */
+        .cxone-guide-container { z-index: 99999999 !important; }
+        .be-template { z-index: 2147483549 !important; }
+        #cxone-guide-container [data-selector="GUIDE_CHANNEL_BUTTON"]:focus,
+        #cxone-guide-container [data-selector="GUIDE_CHANNEL_BUTTON"]:active,
+        #cxone-guide-container [data-selector="GUIDE_CHANNEL_BUTTON"]:focus-visible {
+            outline-color: #D0066B !important;
+            outline-width: 2px !important;
+        }
+        /* GUIDE loading bg */
+        #cxone-guide-container [data-selector="GUIDE_FRAME_CONTENT"],
+        #cxone-guide-container [data-selector="GUIDE_FRAME_CONTENT"] section,
+        #cxone-guide-container [data-selector="GUIDE_FRAME_CONTENT"] .container {
+            background-color: #1a0035 !important;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     NAV
+══════════════════════════════════════ -->
+<nav class="site-nav">
+    <img class="logo"
+         src="https://images.contentstack.io/v3/assets/blt440de00c5519ec3c/blt36649ad5e4aeb190/685c1cd4eff8a306ad9f0106/Logo_VW-2100x702-arriba.png?width=400&quality=80&format=webp"
+         alt="VidantaWorld" />
+    <ul>
+        <li><a href="#hotels">Hotels</a></li>
+        <li><a href="#entertainment">Entertainment</a></li>
+        <li><a href="#dining">Dining</a></li>
+
+    </ul>
+</nav>
+
+<!-- ══════════════════════════════════════
+     HERO
+══════════════════════════════════════ -->
+<div class="hero">
+    <video muted autoplay loop playsinline disablepictureinpicture
+           src="https://assets.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/blta4ad4dad0df3b935/69948c638b33e4000870abdc/VidantaWorld_Website_30s_Loop_1520x800_V4_122325_TEXTLESS_20MB.mp4">
+    </video>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1>Welcome to VidantaWorld</h1>
+        <p>Two iconic destinations. Infinite unforgettable moments.</p>
+    </div>
+</div>
+
+<!-- Booking Bar -->
+<div class="booking-bar">
+    <div class="field">
+        <label>Where</label>
+        <span>BON Hotel – Vallarta</span>
+    </div>
+    <div class="field">
+        <label>Check In</label>
+        <span>Select date</span>
+    </div>
+    <div class="field">
+        <label>Check Out</label>
+        <span>Select date</span>
+    </div>
+    <div class="field">
+        <label>Guests</label>
+        <span>Adults 1 · Rooms 1</span>
+    </div>
+    <button class="search-btn">Search</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     OUR HOTELS
+══════════════════════════════════════ -->
+<div class="section" id="hotels">
+    <h2 class="section-title">Our Hotels</h2>
+    <div class="hotels-grid">
+
+        <!-- BON Hotel -->
+        <div class="hotel-card bon">
+            <div class="img-side">
+                <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/bltb91f6a7827e8a82d/694959b5c52b6481a8e0e03f/BON_Hotel_-_Two-Bedroom-Suite-1.webp"
+                     alt="BON Hotel">
+            </div>
+            <div class="info-side">
+                <p style="font-size:1.1rem;font-weight:700;margin-bottom:4px">BON Hotel</p>
+                <p style="font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:0">Vallarta · Nuevo Nayarit</p>
+                <p>Sophisticated elegance meets fun in spacious accommodations with panoramic views — steps from world-class dining, nightlife, and endless adventure.</p>
+                <a href="https://vidantaworld.com/en/bon-hotel" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <!-- Jungala Hotel -->
+        <div class="hotel-card jungala">
+            <div class="img-side">
+                <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/blte2b2cd25ecc6429e/6949596ef9bda53b6d554878/Jungala-Hotel-Gal-3_1.webp"
+                     alt="Jungala Hotel">
+            </div>
+            <div class="info-side">
+                <p style="font-size:1.1rem;font-weight:700;margin-bottom:4px">Jungala Hotel</p>
+                <p style="font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:0">Riviera Maya</p>
+                <p>An all-suite luxury retreat in the heart of VidantaWorld Riviera Maya. Tropical serenity, exceptional service, and world-class amenities.</p>
+                <a href="https://vidantaworld.com/en/jungala-hotel" target="_blank">Learn More</a>
+                <a class="outline" href="https://tickets.jungala.com/en" target="_blank">Jungala Aqua Experience</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ENTERTAINMENT
+══════════════════════════════════════ -->
+<div class="section" id="entertainment">
+    <h2 class="section-title">Entertainment</h2>
+    <div class="ent-grid">
+
+        <div class="ent-card">
+            <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/bltde02a96c14791570/69af2562030f160008147c59/2025_Cique_du_Soleil_LUD%C3%95_Outside_Inside_Theater_Credit_Marc_Montplaisir_1.jpg" alt="Cirque du Soleil LUDÕ">
+            <div class="gradient"></div>
+            <span class="badge">Vallarta · Nuevo Nayarit</span>
+            <div class="ent-info">
+                <h3>Cirque du Soleil LUDÕ</h3>
+                <p>Water, wonder and culinary artistry</p>
+                <a href="https://tickets.cirquedusoleil.com/shop/#/7c8d1b13-e5bb-4171-b858-aa737b15c804/shop/select" target="_blank">Buy Tickets</a>
+            </div>
+        </div>
+
+        <div class="ent-card">
+            <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/blt202cb9ed30a6a02e/69af3e7800b88e0008c95864/Joya_Theater.jpeg" alt="Cirque du Soleil JOYÀ">
+            <div class="gradient"></div>
+            <span class="badge">Riviera Maya</span>
+            <div class="ent-info">
+                <h3>Cirque du Soleil JOYÀ</h3>
+                <p>Acrobatic spectacle and a theatrical feast</p>
+                <a href="https://tickets.cirquedusoleil.com/mex/go/20c6c0e3-76bf-42cf-9c81-1034f6a13160/shop/select" target="_blank">Buy Tickets</a>
+            </div>
+        </div>
+
+        <div class="ent-card">
+            <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/blta23fa129bb554999/694bda836d068f0b71310932/Bubble.jpg" alt="Concert Series">
+            <div class="gradient"></div>
+            <span class="badge">Vallarta · Nuevo Nayarit</span>
+            <div class="ent-info">
+                <h3>VidantaWorld Concert Series</h3>
+                <p>Superstars Live Under the Stars</p>
+                <a href="https://concertseries.vidanta.com/en" target="_blank">Buy Tickets</a>
+            </div>
+        </div>
+
+        <div class="ent-card">
+            <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/blt938982913bd44237/69863675c6afdc58faf64a2c/Mexico_Open.png" alt="Mexico Open PGA">
+            <div class="gradient"></div>
+            <div class="ent-info">
+                <h3>Mexico's Premier PGA TOUR Event</h3>
+                <p>Oct 29 – Nov 1, 2026</p>
+                <a href="https://mexicoopen.vidantaworld.com/en" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     DINING
+══════════════════════════════════════ -->
+<div class="section" id="dining">
+    <h2 class="section-title">Dining at VidantaWorld</h2>
+    <p style="color:rgba(255,255,255,0.65);margin:-24px 0 32px;font-size:0.95rem;max-width:720px">
+        Visionary chefs craft masterpieces with unrivaled passion — from extraordinary fine dining to indulgent beachfront bites. Every bite transforms your vacation into timeless memories.
+    </p>
+    <div class="dining-scroll">
+
+        <div class="dining-card">
+            <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/blt0a8d953acc0dbf88/69503a5ac52b645ca4e0f00e/BistroBleuImage.jpg" alt="Bistro Bleu">
+            <div class="dining-info">
+                <h3>Bistro Bleu</h3>
+                <p>Modern French artistry — vibrant salads, soul-warming bistro favorites, and irresistibly decadent desserts.</p>
+                <div class="dining-meta">
+                    <span>$$$ · French</span>
+                    <span>Breakfast, Lunch &amp; Dinner</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dining-card">
+            <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/blt34c7e58321133c39/69503a5a50dc7c39e1a098cd/GongImage.jpg" alt="Gong">
+            <div class="dining-info">
+                <h3>Gong</h3>
+                <p>Bold Asian fusion — Peking Duck, lobster rolls, tempura ice cream, and live teppanyaki.</p>
+                <div class="dining-meta">
+                    <span>$$$ · Asian</span>
+                    <span>Dinner</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dining-card">
+            <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/bltb5d0e88278d7b492/69503a5a50dc7c1191a098d1/PuertoManjarImage.jpg" alt="Puerto Manjar">
+            <div class="dining-info">
+                <h3>Puerto Manjar</h3>
+                <p>Open-air terrace with panoramic Bay of Banderas views. Exquisite fresh seafood with Latin flair.</p>
+                <div class="dining-meta">
+                    <span>$$$ · Seafood</span>
+                    <span>Breakfast &amp; Dinner</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dining-card">
+            <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/blt4b224cb7971357bd/69503a4d50dc7cf1d8a098c9/QuintoImage.jpg" alt="Quinto Charcoal Grill">
+            <div class="dining-info">
+                <h3>Quinto Charcoal Grill</h3>
+                <p>Rooftop charcoal-kissed prime cuts and surf-and-turf with panoramic Banderas Bay views.</p>
+                <div class="dining-meta">
+                    <span>$$$ · Steakhouse</span>
+                    <span>Lunch &amp; Dinner</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dining-card">
+            <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/bltac4914054c2a5392/69503a4cf9bda50c4d55576c/TramontoImage.jpg" alt="Tramonto">
+            <div class="dining-info">
+                <h3>Tramonto</h3>
+                <p>Authentic Italian — house-made pastas, creamy risottos, and slow-roasted prime rib.</p>
+                <div class="dining-meta">
+                    <span>$$$ · Italian-American</span>
+                    <span>Dinner</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dining-card">
+            <img src="https://images.contentstack.io/v3/assets/blt7b9edb3145f7eaaf/blt339b1db0e6dad71b/69503a4d8004611a31c9c9c3/BreezaImage.jpg" alt="Brezza">
+            <div class="dining-info">
+                <h3>Brezza</h3>
+                <p>Sun-kissed Mediterranean — grilled meats, ocean-fresh seafood, velvety house-made pastas.</p>
+                <div class="dining-meta">
+                    <span>$$$ · Mediterranean</span>
+                    <span>Dinner</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     COBROWSE + CHAT CTA
+══════════════════════════════════════ -->
+<div class="cobrowse-cta" id="cobrowse">
+    <h2>Need Help Planning Your Stay?</h2>
+    <p>Our team is ready to chat — or jump into a live co-browse session to guide you through everything VidantaWorld has to offer.</p>
+    <div class="btn-row">
+        <button class="btn-primary" onclick="Surfly.session().startLeader()">▶ Start Co-Browse Session</button>
+        <a class="btn-outline" href="https://app.surfly-us.com/landing/vidavacations/" target="_blank">Launch Landing Page</a>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     FOOTER
+══════════════════════════════════════ -->
+<footer>
+    © 2025 VidantaWorld · Demo page for CXone Chat + Surfly Co-Browse integration &nbsp;|&nbsp; <a id="cobrowse-link" href="#" style="color:rgba(255,255,255,0.5);text-decoration:none;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">Cobrowse</a>
+</footer>
+
+
+<!-- ══════════════════════════════════════
+     SURFLY → then CXone (your script, unchanged)
+══════════════════════════════════════ -->
+<script>
+(function (s, u, r, f, l, y) {
+    s[f] = s[f] || { init: function () { s[f].q = arguments; } };
+    l = u.createElement(r);
+    y = u.getElementsByTagName(r)[0];
+    l.async = 1;
+    l.src = "https://surfly.com/surfly.js";
+    y.parentNode.insertBefore(l, y);
+})(window, document, "script", "Surfly");
+
+var settings = {
+    widget_key: "16535f127b7b483689a3f51ad17b80d7",
+};
+
+Surfly.init(settings, function (initResult) {
+    if (initResult.success) {
+        if (!Surfly.isInsideSession) {
+
+            // ── Load CXone only after Surfly is ready ──
+            (function (n, u) {
+                window.CXoneDfo = n;
+                window[n] = window[n] || function () { (window[n].q = window[n].q || []).push(arguments); };
+                window[n].u = u;
+                var e = document.createElement("script");
+                e.type = "module";
+                e.src = u + "?" + Math.round(Date.now() / 1e3 / 3600);
+                document.head.appendChild(e);
+            })('cxone', 'https://web-modules-de-na1.niceincontact.com/loader/1/loader.js');
+
+            cxone('init', '5748');
+            cxone('guide', 'init');
+            cxone('guide', 'setDesiredGuideWidth', '400px');
+            cxone('guide', 'setDesiredGuideHeight', '600px');
+            cxone('guide', 'setButtonSize', '70px');
+
+            // VidantaWorld branded chat header
+            setTimeout(() => {
+                cxone('chat', 'setCustomCss', `
+                    [data-selector="HEADER"] {
+                        background-image: url("https://images.contentstack.io/v3/assets/blt440de00c5519ec3c/blt36649ad5e4aeb190/685c1cd4eff8a306ad9f0106/Logo_VW-2100x702-arriba.png?width=3840&quality=75&format=webp") !important;
+                        background-repeat: no-repeat !important;
+                        background-size: 70%;
+                        height: 85px !important;
+                    }
+                `);
+            }, 500);
+
+            // Allow external message events
+            cxone("chat", "setAllowedExternalMessageTypes", [
+                "MESSAGE_SENT",
+                "MESSAGE_RECEIVED",
+            ]);
+
+            // Wire footer Cobrowse link to start Surfly session
+            // (must live here so both Surfly and CXone are guaranteed initialized)
+            document.getElementById('cobrowse-link').addEventListener('click', function (e) {
+                e.preventDefault();
+                console.log(`Cobrowse link clicked ${new Date().toISOString()}`);
+                Surfly.session().startLeader();
+            });
+
+        }
+    } else {
+        console.log("Surfly was unable to initialize properly.");
+    }
+});
+
+// Focus ring color fix (applied after CXone renders)
+setTimeout(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #cxone-guide-container [data-selector="GUIDE_CHANNEL_BUTTON"]:focus,
+        #cxone-guide-container [data-selector="GUIDE_CHANNEL_BUTTON"]:active,
+        #cxone-guide-container [data-selector="GUIDE_CHANNEL_BUTTON"]:focus-visible {
+            outline-color: #D0066B !important;
+            outline-width: 2px !important;
+        }
+    `;
+    document.head.appendChild(style);
+}, 1000);
+</script>
+
+</body>
+</html>
