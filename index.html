@@ -651,11 +651,23 @@ Surfly.init(settings, function (initResult) {
 
             // Wire footer Cobrowse link to start Surfly session
             // (must live here so both Surfly and CXone are guaranteed initialized)
-            document.getElementById('cobrowse-link').addEventListener('click', function (e) {
-                e.preventDefault();
-                console.log(`Cobrowse link clicked ${new Date().toISOString()}`);
-                Surfly.session().startLeader();
-            });
+            // DOMContentLoaded guard needed because this script runs in <head>
+            // before the footer element exists in the DOM
+            function attachCobrowseLink() {
+                var link = document.getElementById('cobrowse-link');
+                if (link) {
+                    link.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        console.log(`Cobrowse link clicked ${new Date().toISOString()}`);
+                        Surfly.session().startLeader();
+                    });
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', attachCobrowseLink);
+            } else {
+                attachCobrowseLink(); // DOM already ready (e.g. Surfly init resolved late)
+            }
 
         }
     } else {
