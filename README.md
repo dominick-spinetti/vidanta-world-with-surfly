@@ -93,13 +93,19 @@ When a bot is handling the chat conversation, displaying the free-text reply box
 ### Solution
 Use the `onAnyPushUpdate` push event listener to detect `CaseInboxAssigneeChanged` events and toggle the reply box visibility via `setCustomCss` depending on whether the new assignee is a bot or a human agent.
 
+### Important: `setCustomCss` Is a Full Override
+
+Every call to `cxone("chat", "setCustomCss", ...)` **completely replaces** all previously applied widget CSS. There is no merging or appending — the last call wins. This means if branding CSS is applied on load and then a separate call is made later to hide the reply box, the branding will be lost.
+
+**To avoid this**, all widget CSS must live inside a single function that is called any time the styles need to change. The `botMode` parameter controls only the reply box portion, while all other styles (branding, etc.) are always included in every call.
+
 ### Required API Calls
 
 | Call | Purpose |
 |------|---------|
 | `cxone("chat", "setAllowedExternalMessageTypes", [...])` | **Required.** Enables the push update stream. Without this, `onAnyPushUpdate` will not fire. |
 | `cxone("chat", "onAnyPushUpdate", callback)` | Subscribes to real-time case events, including assignee changes. |
-| `cxone("chat", "setCustomCss", cssString)` | Applies or overrides widget CSS at runtime to hide or restore the reply box. |
+| `cxone("chat", "setCustomCss", cssString)` | Applies the complete widget CSS. Must always include all styles — branding and reply box — in a single call. |
 
 ### Implementation
 
@@ -111,51 +117,69 @@ cxone("chat", "setAllowedExternalMessageTypes", [
     "MESSAGE_RECEIVED",
 ]);
 
-(function () {
-    var BOT_USER_ID = 294069; // Replace with your bot's CXone user ID
-    var isBotMode = false;
+var BOT_USER_ID = 294069; // Replace with your bot's CXone user ID
+var isBotMode = false;
 
-    function applyChatCss(botMode) {
-        cxone("chat", "setCustomCss", botMode
-            ? `
-                [data-selector="REPLY_BOX"],
-                [data-selector="TEXTAREA"],
-                [data-selector="INPUT"],
-                [data-selector="SEND_BUTTON"] {
-                    display: none !important;
-                }
-              `
-            : `
-                [data-selector="REPLY_BOX"],
-                [data-selector="TEXTAREA"],
-                [data-selector="INPUT"],
-                [data-selector="SEND_BUTTON"] {
-                    display: revert !important;
-                }
-              `
-        );
-    }
+// ⚠️ This function is the single source of truth for ALL widget CSS.
+// Always call this function instead of calling setCustomCss directly anywhere else.
+// Adding a new style? Add it here — do not create a separate setCustomCss call.
+function applyAllChatCss(botMode) {
+    var replyBoxCss = botMode
+        ? `
+            [data-selector="REPLY_BOX"],
+            [data-selector="TEXTAREA"],
+            [data-selector="INPUT"],
+            [data-selector="SEND_BUTTON"] {
+                display: none !important;
+            }
+          `
+        : `
+            [data-selector="REPLY_BOX"],
+            [data-selector="TEXTAREA"],
+            [data-selector="INPUT"],
+            [data-selector="SEND_BUTTON"] {
+                display: revert !important;
+            }
+          `;
 
-    cxone("chat", "onAnyPushUpdate", function (payload) {
-        if (payload?.eventType !== "CaseInboxAssigneeChanged") return;
+    cxone("chat", "setCustomCss", `
+        /* ── Branding ── */
+        [data-selector="HEADER"] {
+            background-image: url("YOUR_LOGO_URL") !important;
+            background-repeat: no-repeat !important;
+            background-size: 70%;
+            height: 85px !important;
+        }
 
-        var assigneeUser = payload?.data?.case?.inboxAssigneeUser;
-        var assigneeId   = payload?.data?.case?.inboxAssignee;
+        /* ── Reply box (bot vs. agent) ── */
+        ${replyBoxCss}
+    `);
+}
 
-        var botMode =
-            assigneeUser?.isBotUser === true ||
-            assigneeUser?.id === BOT_USER_ID ||
-            assigneeId === BOT_USER_ID;
+// Apply full CSS on load with reply box visible (bot mode off)
+setTimeout(() => applyAllChatCss(false), 500);
 
-        if (botMode === isBotMode) return; // No change, skip re-render
-        isBotMode = botMode;
-        applyChatCss(isBotMode);
-    });
-})();
+// Re-apply full CSS on every assignee change with updated bot state
+cxone("chat", "onAnyPushUpdate", function (payload) {
+    if (payload?.eventType !== "CaseInboxAssigneeChanged") return;
+
+    var assigneeUser = payload?.data?.case?.inboxAssigneeUser;
+    var assigneeId   = payload?.data?.case?.inboxAssignee;
+
+    var botMode =
+        assigneeUser?.isBotUser === true ||
+        assigneeUser?.id === BOT_USER_ID ||
+        assigneeId === BOT_USER_ID;
+
+    if (botMode === isBotMode) return; // No change, skip re-render
+    isBotMode = botMode;
+    applyAllChatCss(isBotMode);
+});
 ```
 
 ### Key Points
 - `BOT_USER_ID` must be updated to match the actual CXone user ID of the bot agent in your tenant.
+- **All future CSS changes must go inside `applyAllChatCss`.** Never add a standalone `setCustomCss` call elsewhere — it will wipe out everything applied by this function.
 - The check uses three conditions to identify a bot assignee — `isBotUser` flag, user `id`, or the `inboxAssignee` numeric ID — to be resilient against variations in the payload structure.
 - The `isBotMode` flag prevents redundant `setCustomCss` calls if the same assignee type is set consecutively.
 - `setAllowedExternalMessageTypes` must be called **before** `onAnyPushUpdate` or the push stream will not be active.
@@ -164,8 +188,8 @@ cxone("chat", "setAllowedExternalMessageTypes", [
 
 ## Summary of Changes
 
-| # | Change | Type | 
-|---|--------|------|
-| 1 | Nest CXone init inside `Surfly.init()` callback | JavaScript | 
-| 2 | `.be-template` z-index override | CSS | 
-| 3 | Bot/agent reply box toggle via `onAnyPushUpdate` | JavaScript | 
+| # | Change | Type | Required |
+|---|--------|------|----------|
+| 1 | Nest CXone init inside `Surfly.init()` callback | JavaScript | ✅ Yes |
+| 2 | `.be-template` z-index override | CSS | ✅ Yes |
+| 3 | Bot/agent reply box toggle via `onAnyPushUpdate` | JavaScript | ✅ Yes |
