@@ -628,7 +628,6 @@ Surfly.init(settings, function (initResult) {
                     cxone('guide', 'setDesiredGuideWidth', '400px');
                     cxone('guide', 'setDesiredGuideHeight', '600px');
                     cxone('guide', 'setButtonSize', '70px');
-                    cxone('chat', 'hideAssignedAgent');
 
                     // VidantaWorld branded chat header
                     setTimeout(() => {
@@ -647,6 +646,50 @@ Surfly.init(settings, function (initResult) {
                         "MESSAGE_SENT",
                         "MESSAGE_RECEIVED",
                     ]);
+
+                    cxone('chat', 'hideAssignedAgent');
+
+                    // ── Bot-mode reply box toggle ──
+                    // Hides the text input when a bot is the assignee,
+                    // restores it when a human agent takes over
+                    (function () {
+                        var BOT_USER_ID = 294069;
+                        var isBotMode = false;
+
+                        function applyChatCss(botMode) {
+                            cxone("chat", "setCustomCss", botMode
+                                ? `
+                                    [data-selector="REPLY_BOX"],
+                                    [data-selector="TEXTAREA"],
+                                    [data-selector="INPUT"],
+                                    [data-selector="SEND_BUTTON"] {
+                                        display: none !important;
+                                    }
+                                  `
+                                : `
+                                    [data-selector="REPLY_BOX"],
+                                    [data-selector="TEXTAREA"],
+                                    [data-selector="INPUT"],
+                                    [data-selector="SEND_BUTTON"] {
+                                        display: revert !important;
+                                    }
+                                  `
+                            );
+                        }
+
+                        cxone("chat", "onAnyPushUpdate", function (payload) {
+                            if (payload?.eventType !== "CaseInboxAssigneeChanged") return;
+                            var assigneeUser = payload?.data?.case?.inboxAssigneeUser;
+                            var assigneeId   = payload?.data?.case?.inboxAssignee;
+                            var botMode =
+                                assigneeUser?.isBotUser === true ||
+                                assigneeUser?.id === BOT_USER_ID ||
+                                assigneeId === BOT_USER_ID;
+                            if (botMode === isBotMode) return;
+                            isBotMode = botMode;
+                            applyChatCss(isBotMode);
+                        });
+                    })();
                 };
                 document.head.appendChild(e);
             })('cxone', 'https://web-modules-de-na1.niceincontact.com/loader/1/loader.js');
