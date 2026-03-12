@@ -164,8 +164,8 @@ cxone("chat", "setAllowedExternalMessageTypes", [
 
 ## Summary of Changes
 
-| # | Change | Type | Required |
-|---|--------|------|----------|
-| 1 | Nest CXone init inside `Surfly.init()` callback | JavaScript | ✅ Yes |
-| 2 | `.be-template` z-index override | CSS | ✅ Yes |
-| 3 | Bot/agent reply box toggle via `onAnyPushUpdate` | JavaScript | ✅ Yes |
+| # | Change | Type | 
+|---|--------|------|
+| 1 | Nest CXone init inside `Surfly.init()` callback | JavaScript | 
+| 2 | `.be-template` z-index override | CSS | 
+| 3 | Bot/agent reply box toggle via `onAnyPushUpdate` | JavaScript | 
