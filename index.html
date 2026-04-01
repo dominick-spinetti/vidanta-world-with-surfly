@@ -646,7 +646,10 @@ Surfly.init(settings, function (initResult) {
                     // previously applied CSS. All widget styles (branding + reply
                     // box) must live inside this single function so nothing gets
                     // wiped when botMode changes.
-                    var BOT_USER_ID = 294069;
+                    // Use the agentId — this is the ID visible in CXone UserHub
+                    // (ACD → Users, search "bot"). The internal `id` field in the
+                    // payload is a different system ID not exposed in the UI.
+                    var BOT_USER_ID = 69381993;
                     var isBotMode = false;
 
                     function applyAllChatCss(botMode) {
@@ -696,12 +699,11 @@ Surfly.init(settings, function (initResult) {
                             var _user = payload?.data?.case?.inboxAssigneeUser;
                             var _id   = payload?.data?.case?.inboxAssignee;
                             console.group("[CXone] CaseInboxAssigneeChanged");
-                            console.log("inboxAssignee (numeric ID):", _id);
-                            console.log("inboxAssigneeUser.id:      ", _user?.id);
+                            console.log("agentId (UserHub-visible):  ", payload?.data?.inboxAssignee?.agentId);
                             console.log("inboxAssigneeUser.isBotUser:", _user?.isBotUser);
                             console.log("inboxAssigneeUser.firstName:", _user?.firstName);
-                            console.log("inboxAssigneeUser.lastName: ", _user?.lastName);
-                            console.log("inboxAssigneeUser.login:    ", _user?.login);
+                            console.log("loginUsername:              ", payload?.data?.inboxAssignee?.loginUsername);
+                            console.log("nickname:                   ", payload?.data?.inboxAssignee?.nickname);
                             console.log("── Full payload ──");
                             console.log(JSON.parse(JSON.stringify(payload)));
                             console.groupEnd();
@@ -711,12 +713,13 @@ Surfly.init(settings, function (initResult) {
                         if (payload?.eventType !== "CaseInboxAssigneeChanged") return;
 
                         var assigneeUser = payload?.data?.case?.inboxAssigneeUser;
-                        var assigneeId   = payload?.data?.case?.inboxAssignee;
+                        // agentId is the UserHub-visible ID (ACD → Users).
+                        // inboxAssignee.id is an internal system ID not shown in the UI.
+                        var agentId = payload?.data?.inboxAssignee?.agentId;
 
                         var botMode =
                             assigneeUser?.isBotUser === true ||
-                            assigneeUser?.id === BOT_USER_ID ||
-                            assigneeId === BOT_USER_ID;
+                            agentId === BOT_USER_ID;
 
                         if (botMode === isBotMode) return; // no change, skip re-render
                         isBotMode = botMode;
