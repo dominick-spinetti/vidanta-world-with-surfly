@@ -107,6 +107,18 @@ Every call to `cxone("chat", "setCustomCss", ...)` **completely replaces** all p
 | `cxone("chat", "onAnyPushUpdate", callback)` | Subscribes to real-time case events, including assignee changes. |
 | `cxone("chat", "setCustomCss", cssString)` | Applies the complete widget CSS. Must always include all styles — branding and reply box — in a single call. |
 
+### Finding the Bot's `BOT_USER_ID`
+
+Bot user accounts are system-provisioned and **do not expose their `agentId` anywhere in the CXone UserHub UI** under a bot's own profile. However, the `agentId` shown in the **ACD → Users** list (when you search "bot") is the correct value to use — it matches the `agentId` field in the live `CaseInboxAssigneeChanged` payload.
+
+> **Note on the two ID fields in the payload**
+>
+> The `CaseInboxAssigneeChanged` event contains two different numeric identifiers for the assignee:
+> - `payload.data.inboxAssignee.agentId` — the **UserHub-visible** ID shown in ACD → Users. Use this one.
+> - `payload.data.inboxAssignee.id` — an internal system ID that does **not** appear anywhere in the UserHub UI. Do not use this.
+
+**To discover the `agentId` for a bot on any channel**, add `?cxdebug` to the page URL and use the built-in logging (see [Bot ID Discovery Logging](#bot-id-discovery-logging) below). Send a message in the chat and the bot's `agentId` will be logged to the console when the `CaseInboxAssigneeChanged` event fires.
+
 ### Implementation
 
 ```javascript
@@ -117,7 +129,10 @@ cxone("chat", "setAllowedExternalMessageTypes", [
     "MESSAGE_RECEIVED",
 ]);
 
-var BOT_USER_ID = 294069; // Replace with your bot's CXone user ID
+// Use the agentId value from ACD → Users in CXone UserHub (search "bot").
+// This is the UserHub-visible ID. Do NOT use payload.data.inboxAssignee.id —
+// that is an internal system ID not shown anywhere in the UI.
+var BOT_USER_ID = 0; // ← Replace with your bot's agentId from UserHub
 var isBotMode = false;
 
 // ⚠️ This function is the single source of truth for ALL widget CSS.
@@ -164,12 +179,13 @@ cxone("chat", "onAnyPushUpdate", function (payload) {
     if (payload?.eventType !== "CaseInboxAssigneeChanged") return;
 
     var assigneeUser = payload?.data?.case?.inboxAssigneeUser;
-    var assigneeId   = payload?.data?.case?.inboxAssignee;
+    // agentId is the UserHub-visible ID (ACD → Users).
+    // inboxAssignee.id is an internal system ID not shown in the UI.
+    var agentId = payload?.data?.inboxAssignee?.agentId;
 
     var botMode =
-        assigneeUser?.isBotUser === true ||
-        assigneeUser?.id === BOT_USER_ID ||
-        assigneeId === BOT_USER_ID;
+        assigneeUser?.isBotUser === true || // primary: reliable flag in payload
+        agentId === BOT_USER_ID;            // fallback: UserHub-visible agentId
 
     if (botMode === isBotMode) return; // No change, skip re-render
     isBotMode = botMode;
@@ -178,11 +194,52 @@ cxone("chat", "onAnyPushUpdate", function (payload) {
 ```
 
 ### Key Points
-- `BOT_USER_ID` must be updated to match the actual CXone user ID of the bot agent in your tenant.
+- `BOT_USER_ID` must be set to the bot's `agentId` as shown in **ACD → Users** in CXone UserHub. See [Bot ID Discovery Logging](#bot-id-discovery-logging) to retrieve it from the live payload if needed.
 - **All future CSS changes must go inside `applyAllChatCss`.** Never add a standalone `setCustomCss` call elsewhere — it will wipe out everything applied by this function.
-- The check uses three conditions to identify a bot assignee — `isBotUser` flag, user `id`, or the `inboxAssignee` numeric ID — to be resilient against variations in the payload structure.
+- The `isBotUser: true` flag is the primary bot detection signal. The `agentId` match is a resilient fallback in case the flag is absent.
 - The `isBotMode` flag prevents redundant `setCustomCss` calls if the same assignee type is set consecutively.
 - `setAllowedExternalMessageTypes` must be called **before** `onAnyPushUpdate` or the push stream will not be active.
+
+---
+
+## Bot ID Discovery Logging
+
+The page includes built-in debug logging to help identify bot `agentId` values for additional channels. It is **off by default** and activated by appending `?cxdebug` to the page URL — no code changes required.
+
+### How to Use
+
+1. Load the page with `?cxdebug` appended to the URL
+2. Open DevTools → Console
+3. Open the chat widget and **send a message** (tap a quick reply button or type)
+4. When the bot is assigned, a `[CXone] CaseInboxAssigneeChanged` group appears in the console
+5. Read the `agentId (UserHub-visible)` line — that is the value for `BOT_USER_ID`
+
+### What Gets Logged
+
+```
+[CXone] CaseInboxAssigneeChanged
+  agentId (UserHub-visible):   69381993   ← use this as BOT_USER_ID
+  inboxAssigneeUser.isBotUser: true
+  inboxAssigneeUser.firstName: Vidanta
+  loginUsername:               vw.bot@...
+  nickname:                    VidantaWorld
+  ── Full payload ──
+  { ... }
+```
+
+> The logging block is gated behind the `?cxdebug` flag and does not execute in normal page loads. It can be safely left in the production script.
+
+### Known Bot `agentId` Values (Vidanta Tenant)
+
+| Bot Name | UserHub agentId | Channel |
+|----------|----------------|---------|
+| Vidanta World | 69381993 | VidantaWorld Chat – DEV |
+| Elegant Chat | 69479955 | — |
+| MBE Bot | 69480059 | — |
+| Ocean Breeze | 69479938 | — |
+| Vidanta.com Bot | 69479956 | — |
+
+> Channel assignments for all bots except Vidanta World are pending confirmation via `?cxdebug` testing on each respective demo page.
 
 ---
 
