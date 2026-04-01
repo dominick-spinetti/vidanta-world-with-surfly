@@ -682,20 +682,42 @@ Surfly.init(settings, function (initResult) {
 
                     // Listen for assignee changes and re-apply full CSS with updated bot state
                     cxone("chat", "onAnyPushUpdate", function (payload) {
+                    
+                        // ── BOT ID DISCOVERY LOGGING ──────────────────────────────────────────
+                        // Remove or gate behind a flag (e.g. window.CX_DEBUG = true) once IDs
+                        // are confirmed. Logs every assignee change with the full identity fields
+                        // needed to populate BOT_USER_ID for any bot in your tenant.
+                        if (payload?.eventType === "CaseInboxAssigneeChanged") {
+                            var assigneeUser = payload?.data?.case?.inboxAssigneeUser;
+                            var assigneeId   = payload?.data?.case?.inboxAssignee;
+                    
+                            console.group("[CXone] CaseInboxAssigneeChanged");
+                            console.log("inboxAssignee (numeric ID):", assigneeId);
+                            console.log("inboxAssigneeUser.id:      ", assigneeUser?.id);
+                            console.log("inboxAssigneeUser.isBotUser:", assigneeUser?.isBotUser);
+                            console.log("inboxAssigneeUser.firstName:", assigneeUser?.firstName);
+                            console.log("inboxAssigneeUser.lastName: ", assigneeUser?.lastName);
+                            console.log("inboxAssigneeUser.login:    ", assigneeUser?.login);
+                            console.log("── Full payload (expand for raw structure) ──");
+                            console.log(JSON.parse(JSON.stringify(payload))); // serialized snapshot
+                            console.groupEnd();
+                        }
+                        // ── END LOGGING ───────────────────────────────────────────────────────
+                    
                         if (payload?.eventType !== "CaseInboxAssigneeChanged") return;
+                    
                         var assigneeUser = payload?.data?.case?.inboxAssigneeUser;
                         var assigneeId   = payload?.data?.case?.inboxAssignee;
+                    
                         var botMode =
                             assigneeUser?.isBotUser === true ||
                             assigneeUser?.id === BOT_USER_ID ||
                             assigneeId === BOT_USER_ID;
-                        if (botMode === isBotMode) return; // No change, skip re-render
+                    
+                        if (botMode === isBotMode) return;
                         isBotMode = botMode;
                         applyAllChatCss(isBotMode);
                     });
-                };
-                document.head.appendChild(e);
-            })('cxone', 'https://web-modules-de-na1.niceincontact.com/loader/1/loader.js');
 
             // VidantaWorld branded chat header
             setTimeout(() => {
