@@ -357,7 +357,6 @@
         <li><a href="#hotels">Hotels</a></li>
         <li><a href="#entertainment">Entertainment</a></li>
         <li><a href="#dining">Dining</a></li>
-
     </ul>
 </nav>
 
@@ -589,12 +588,16 @@
      FOOTER
 ══════════════════════════════════════ -->
 <footer>
-    © 2025 VidantaWorld · Demo page for CXone Chat + Surfly Co-Browse integration &nbsp;|&nbsp; <a id="cobrowse-link" href="#" style="color:rgba(255,255,255,0.5);text-decoration:none;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">Cobrowse</a>
+    © 2025 VidantaWorld · Demo page for CXone Chat + Surfly Co-Browse integration &nbsp;|&nbsp;
+    <a id="cobrowse-link" href="#"
+       style="color:rgba(255,255,255,0.5);text-decoration:none;"
+       onmouseover="this.style.color='#fff'"
+       onmouseout="this.style.color='rgba(255,255,255,0.5)'">Cobrowse</a>
 </footer>
 
 
 <!-- ══════════════════════════════════════
-     SURFLY → then CXone (your script, unchanged)
+     SURFLY → then CXone
 ══════════════════════════════════════ -->
 <script>
 (function (s, u, r, f, l, y) {
@@ -614,7 +617,7 @@ Surfly.init(settings, function (initResult) {
     if (initResult.success) {
         if (!Surfly.isInsideSession) {
 
-            // ── Load CXone only after Surfly is ready ──
+            // ── Load CXone only after Surfly is ready ──────────────────────────
             (function (n, u) {
                 window.CXoneDfo = n;
                 window[n] = window[n] || function () { (window[n].q = window[n].q || []).push(arguments); };
@@ -622,6 +625,7 @@ Surfly.init(settings, function (initResult) {
                 var e = document.createElement("script");
                 e.type = "module";
                 e.src = u + "?" + Math.round(Date.now() / 1e3 / 3600);
+
                 e.onload = function () {
                     cxone('init', '5748');
                     cxone('guide', 'init');
@@ -631,16 +635,17 @@ Surfly.init(settings, function (initResult) {
 
                     cxone('chat', 'hideAssignedAgent');
 
-                    // Allow external message events (required for onAnyPushUpdate to fire)
+                    // Required: enables the push update stream so onAnyPushUpdate fires
                     cxone("chat", "setAllowedExternalMessageTypes", [
                         "MESSAGE_SENT",
                         "MESSAGE_RECEIVED",
                     ]);
 
-                    // ── Single CSS function — always applies ALL widget styles ──
-                    // botMode controls only the reply box visibility.
-                    // All other styles (header branding, etc.) are always included
-                    // so that no call ever wipes out a previous one.
+                    // ── Bot/agent reply box toggle ─────────────────────────────
+                    // ⚠️ setCustomCss is a FULL override — every call replaces all
+                    // previously applied CSS. All widget styles (branding + reply
+                    // box) must live inside this single function so nothing gets
+                    // wiped when botMode changes.
                     var BOT_USER_ID = 294069;
                     var isBotMode = false;
 
@@ -677,76 +682,64 @@ Surfly.init(settings, function (initResult) {
                         `);
                     }
 
-                    // Apply branding immediately on load (bot mode starts false)
+                    // Apply full CSS on load — reply box visible, bot mode off
                     setTimeout(() => applyAllChatCss(false), 500);
 
-                    // Listen for assignee changes and re-apply full CSS with updated bot state
+                    // Re-apply full CSS on every assignee change
                     cxone("chat", "onAnyPushUpdate", function (payload) {
-                    
-                        // ── BOT ID DISCOVERY LOGGING ──────────────────────────────────────────
-                        // Remove or gate behind a flag (e.g. window.CX_DEBUG = true) once IDs
-                        // are confirmed. Logs every assignee change with the full identity fields
-                        // needed to populate BOT_USER_ID for any bot in your tenant.
-                        if (payload?.eventType === "CaseInboxAssigneeChanged") {
-                            var assigneeUser = payload?.data?.case?.inboxAssigneeUser;
-                            var assigneeId   = payload?.data?.case?.inboxAssignee;
-                    
+
+                        // ── BOT ID DISCOVERY LOGGING ───────────────────────────
+                        // Activate by adding ?cxdebug to the page URL.
+                        // Remove once all bot IDs are confirmed.
+                        var CX_DEBUG = window.location.search.includes('cxdebug');
+                        if (CX_DEBUG && payload?.eventType === "CaseInboxAssigneeChanged") {
+                            var _user = payload?.data?.case?.inboxAssigneeUser;
+                            var _id   = payload?.data?.case?.inboxAssignee;
                             console.group("[CXone] CaseInboxAssigneeChanged");
-                            console.log("inboxAssignee (numeric ID):", assigneeId);
-                            console.log("inboxAssigneeUser.id:      ", assigneeUser?.id);
-                            console.log("inboxAssigneeUser.isBotUser:", assigneeUser?.isBotUser);
-                            console.log("inboxAssigneeUser.firstName:", assigneeUser?.firstName);
-                            console.log("inboxAssigneeUser.lastName: ", assigneeUser?.lastName);
-                            console.log("inboxAssigneeUser.login:    ", assigneeUser?.login);
-                            console.log("── Full payload (expand for raw structure) ──");
-                            console.log(JSON.parse(JSON.stringify(payload))); // serialized snapshot
+                            console.log("inboxAssignee (numeric ID):", _id);
+                            console.log("inboxAssigneeUser.id:      ", _user?.id);
+                            console.log("inboxAssigneeUser.isBotUser:", _user?.isBotUser);
+                            console.log("inboxAssigneeUser.firstName:", _user?.firstName);
+                            console.log("inboxAssigneeUser.lastName: ", _user?.lastName);
+                            console.log("inboxAssigneeUser.login:    ", _user?.login);
+                            console.log("── Full payload ──");
+                            console.log(JSON.parse(JSON.stringify(payload)));
                             console.groupEnd();
                         }
-                        // ── END LOGGING ───────────────────────────────────────────────────────
-                    
+                        // ── END LOGGING ────────────────────────────────────────
+
                         if (payload?.eventType !== "CaseInboxAssigneeChanged") return;
-                    
+
                         var assigneeUser = payload?.data?.case?.inboxAssigneeUser;
                         var assigneeId   = payload?.data?.case?.inboxAssignee;
-                    
+
                         var botMode =
                             assigneeUser?.isBotUser === true ||
                             assigneeUser?.id === BOT_USER_ID ||
                             assigneeId === BOT_USER_ID;
-                    
-                        if (botMode === isBotMode) return;
+
+                        if (botMode === isBotMode) return; // no change, skip re-render
                         isBotMode = botMode;
                         applyAllChatCss(isBotMode);
                     });
 
-            // VidantaWorld branded chat header
-            setTimeout(() => {
-                cxone('chat', 'setCustomCss', `
-                    [data-selector="HEADER"] {
-                        background-image: url("https://images.contentstack.io/v3/assets/blt440de00c5519ec3c/blt36649ad5e4aeb190/685c1cd4eff8a306ad9f0106/Logo_VW-2100x702-arriba.png?width=3840&quality=75&format=webp") !important;
-                        background-repeat: no-repeat !important;
-                        background-size: 70%;
-                        height: 85px !important;
-                    }
-                `);
-            }, 500);
+                }; // ── END e.onload ──────────────────────────────────────────────
 
-            // Allow external message events
-            cxone("chat", "setAllowedExternalMessageTypes", [
-                "MESSAGE_SENT",
-                "MESSAGE_RECEIVED",
-            ]);
+                document.head.appendChild(e);
+            })('cxone', 'https://web-modules-de-na1.niceincontact.com/loader/1/loader.js');
+            // ── END CXone loader IIFE ──────────────────────────────────────────
 
-            // Wire footer Cobrowse link to start Surfly session
-            // (must live here so both Surfly and CXone are guaranteed initialized)
-            // DOMContentLoaded guard needed because this script runs in <head>
-            // before the footer element exists in the DOM
+            // Wire footer Cobrowse link to start Surfly session.
+            // Lives outside the CXone IIFE but inside !Surfly.isInsideSession so
+            // both Surfly and CXone are guaranteed initialized before this runs.
+            // DOMContentLoaded guard needed because Surfly.init may resolve before
+            // the footer element exists in the DOM.
             function attachCobrowseLink() {
                 var link = document.getElementById('cobrowse-link');
                 if (link) {
                     link.addEventListener('click', function (e) {
                         e.preventDefault();
-                        console.log(`Cobrowse link clicked ${new Date().toISOString()}`);
+                        console.log('Cobrowse link clicked', new Date().toISOString());
                         Surfly.session().startLeader();
                     });
                 }
@@ -754,18 +747,18 @@ Surfly.init(settings, function (initResult) {
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', attachCobrowseLink);
             } else {
-                attachCobrowseLink(); // DOM already ready (e.g. Surfly init resolved late)
+                attachCobrowseLink();
             }
 
-        }
+        } // ── END !Surfly.isInsideSession ───────────────────────────────────────
     } else {
         console.log("Surfly was unable to initialize properly.");
     }
-});
+}); // ── END Surfly.init ───────────────────────────────────────────────────────
 
-// Focus ring color fix (applied after CXone renders)
-setTimeout(() => {
-    const style = document.createElement('style');
+// Focus ring color fix — applied after CXone renders its container
+setTimeout(function () {
+    var style = document.createElement('style');
     style.innerHTML = `
         #cxone-guide-container [data-selector="GUIDE_CHANNEL_BUTTON"]:focus,
         #cxone-guide-container [data-selector="GUIDE_CHANNEL_BUTTON"]:active,
