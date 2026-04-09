@@ -234,9 +234,12 @@ The page includes built-in debug logging to help identify bot `agentId` values f
 | Bot Name | UserHub agentId | Channel |
 |----------|----------------|---------|
 | Vidanta World | 69381993 | VidantaWorld Chat – DEV |
+| Vidanta World ESP | 69480061 | VidantaWorld Chat – DEV |
 | Elegant Chat | 69479955 | — |
+| Elegant Chat ESP | 69480225 | — |
 | MBE Bot | 69480059 | — |
 | Ocean Breeze | 69479938 | — |
+| Ocean Breeze ESP | 69480219 | — |
 | Vidanta.com Bot | 69479956 | — |
 
 > Channel assignments for all bots except Vidanta World are pending confirmation via `?cxdebug` testing on each respective demo page.
