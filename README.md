@@ -107,7 +107,7 @@ Every call to `cxone("chat", "setCustomCss", ...)` **completely replaces** all p
 | `cxone("chat", "onAnyPushUpdate", callback)` | Subscribes to real-time case events, including assignee changes. |
 | `cxone("chat", "setCustomCss", cssString)` | Applies the complete widget CSS. Must always include all styles — branding and reply box — in a single call. |
 
-### Finding the Bot's `BOT_USER_ID`
+### Finding Bot `agentId` Values
 
 Bot user accounts are system-provisioned and **do not expose their `agentId` anywhere in the CXone UserHub UI** under a bot's own profile. However, the `agentId` shown in the **ACD → Users** list (when you search "bot") is the correct value to use — it matches the `agentId` field in the live `CaseInboxAssigneeChanged` payload.
 
@@ -119,6 +119,24 @@ Bot user accounts are system-provisioned and **do not expose their `agentId` any
 
 **To discover the `agentId` for a bot on any channel**, add `?cxdebug` to the page URL and use the built-in logging (see [Bot ID Discovery Logging](#bot-id-discovery-logging) below). Send a message in the chat and the bot's `agentId` will be logged to the console when the `CaseInboxAssigneeChanged` event fires.
 
+### Multiple Bot IDs Per Channel (Bilingual Pages)
+
+Pages that support both English and Spanish will have **two separate bot accounts** — one per language. Both IDs must be treated as bot assignees. Rather than a single `BOT_USER_ID` value, use a `BOT_USER_IDS` array and check membership with `indexOf`:
+
+```javascript
+var BOT_USER_IDS = [
+    69479938,  // English bot agentId
+    69480219,  // Spanish bot agentId
+];
+
+// In the onAnyPushUpdate handler:
+var botMode =
+    assigneeUser?.isBotUser === true ||          // primary: reliable flag in payload
+    BOT_USER_IDS.indexOf(agentId) !== -1;        // fallback: UserHub-visible agentId
+```
+
+To add additional locale variants in the future, append their `agentId` values to the array with a comment noting the locale.
+
 ### Implementation
 
 ```javascript
@@ -129,10 +147,13 @@ cxone("chat", "setAllowedExternalMessageTypes", [
     "MESSAGE_RECEIVED",
 ]);
 
-// Use the agentId value from ACD → Users in CXone UserHub (search "bot").
-// This is the UserHub-visible ID. Do NOT use payload.data.inboxAssignee.id —
+// Use the agentId values from ACD → Users in CXone UserHub (search "bot").
+// These are UserHub-visible IDs. Do NOT use payload.data.inboxAssignee.id —
 // that is an internal system ID not shown anywhere in the UI.
-var BOT_USER_ID = 0; // ← Replace with your bot's agentId from UserHub
+var BOT_USER_IDS = [
+    0,  // ← Replace with English bot agentId from UserHub
+    0,  // ← Replace with Spanish bot agentId from UserHub
+];
 var isBotMode = false;
 
 // ⚠️ This function is the single source of truth for ALL widget CSS.
@@ -184,8 +205,8 @@ cxone("chat", "onAnyPushUpdate", function (payload) {
     var agentId = payload?.data?.inboxAssignee?.agentId;
 
     var botMode =
-        assigneeUser?.isBotUser === true || // primary: reliable flag in payload
-        agentId === BOT_USER_ID;            // fallback: UserHub-visible agentId
+        assigneeUser?.isBotUser === true ||          // primary: reliable flag in payload
+        BOT_USER_IDS.indexOf(agentId) !== -1;        // fallback: UserHub-visible agentId
 
     if (botMode === isBotMode) return; // No change, skip re-render
     isBotMode = botMode;
@@ -194,9 +215,9 @@ cxone("chat", "onAnyPushUpdate", function (payload) {
 ```
 
 ### Key Points
-- `BOT_USER_ID` must be set to the bot's `agentId` as shown in **ACD → Users** in CXone UserHub. See [Bot ID Discovery Logging](#bot-id-discovery-logging) to retrieve it from the live payload if needed.
+- `BOT_USER_IDS` must contain the `agentId` for **every bot variant on the channel** (e.g., one per language). See [Bot ID Discovery Logging](#bot-id-discovery-logging) to retrieve IDs from the live payload if needed.
 - **All future CSS changes must go inside `applyAllChatCss`.** Never add a standalone `setCustomCss` call elsewhere — it will wipe out everything applied by this function.
-- The `isBotUser: true` flag is the primary bot detection signal. The `agentId` match is a resilient fallback in case the flag is absent.
+- The `isBotUser: true` flag is the primary bot detection signal. The `BOT_USER_IDS` array check is a resilient fallback in case the flag is absent.
 - The `isBotMode` flag prevents redundant `setCustomCss` calls if the same assignee type is set consecutively.
 - `setAllowedExternalMessageTypes` must be called **before** `onAnyPushUpdate` or the push stream will not be active.
 
@@ -212,13 +233,13 @@ The page includes built-in debug logging to help identify bot `agentId` values f
 2. Open DevTools → Console
 3. Open the chat widget and **send a message** (tap a quick reply button or type)
 4. When the bot is assigned, a `[CXone] CaseInboxAssigneeChanged` group appears in the console
-5. Read the `agentId (UserHub-visible)` line — that is the value for `BOT_USER_ID`
+5. Read the `agentId (UserHub-visible)` line — that is the value to add to `BOT_USER_IDS`
 
 ### What Gets Logged
 
 ```
 [CXone] CaseInboxAssigneeChanged
-  agentId (UserHub-visible):   69381993   ← use this as BOT_USER_ID
+  agentId (UserHub-visible):   69381993   ← add this to BOT_USER_IDS
   inboxAssigneeUser.isBotUser: true
   inboxAssigneeUser.firstName: Vidanta
   loginUsername:               vw.bot@...
@@ -231,16 +252,16 @@ The page includes built-in debug logging to help identify bot `agentId` values f
 
 ### Known Bot `agentId` Values (Vidanta Tenant)
 
-| Bot Name | UserHub agentId | Channel |
-|----------|----------------|---------|
-| Vidanta World | 69381993 | VidantaWorld Chat – DEV |
-| Vidanta World ESP | 69480061 | VidantaWorld Chat – DEV |
-| Elegant Chat | 69479955 | — |
-| Elegant Chat ESP | 69480225 | — |
-| MBE Bot | 69480059 | — |
-| Ocean Breeze | 69479938 | — |
-| Ocean Breeze ESP | 69480219 | — |
-| Vidanta.com Bot | 69479956 | — |
+| Bot Name | UserHub agentId | Language | Channel |
+|----------|----------------|----------|---------|
+| Vidanta World | 69381993 | EN | VidantaWorld Chat – DEV |
+| Vidanta World ESP | 69480061 | ES | VidantaWorld Chat – DEV |
+| Elegant Chat | 69479955 | EN | — |
+| Elegant Chat ESP | 69480225 | ES | — |
+| MBE Bot | 69480059 | EN | — |
+| Ocean Breeze | 69479938 | EN | — |
+| Ocean Breeze ESP | 69480219 | ES | — |
+| Vidanta.com Bot | 69479956 | EN | — |
 
 > Channel assignments for all bots except Vidanta World are pending confirmation via `?cxdebug` testing on each respective demo page.
 
