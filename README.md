@@ -259,6 +259,7 @@ The page includes built-in debug logging to help identify bot `agentId` values f
 | Elegant Chat | 69479955 | EN | — |
 | Elegant Chat ESP | 69480225 | ES | — |
 | MBE Bot | 69480059 | EN | — |
+| MBE Bot ESP | 69559575 | EN | — |
 | Ocean Breeze | 69479938 | EN | — |
 | Ocean Breeze ESP | 69480219 | ES | — |
 | Vidanta.com Bot | 69479956 | EN | — |
