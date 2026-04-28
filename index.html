@@ -581,7 +581,7 @@
     <div class="btn-row">
         <button class="btn-primary" onclick="Surfly.session({
             non_hosts_can_open_tabs: false,
-            hide_session_ui: true
+            hide_session_ui: false
         }).startLeader()">▶ Start Co-Browse Session</button>
         <a class="btn-outline" href="https://app.surfly-us.com/landing/vidavacations/" target="_blank">Launch Landing Page</a>
     </div>
@@ -748,7 +748,7 @@ Surfly.init(settings, function (initResult) {
                         console.log('Cobrowse link clicked', new Date().toISOString());
                         Surfly.session({
                             non_hosts_can_open_tabs: false,
-                            hide_session_ui: true
+                            hide_session_ui: false
                         }).startLeader();
                     });
                 }
