@@ -579,7 +579,9 @@
     <h2>Need Help Planning Your Stay?</h2>
     <p>Our team is ready to chat — or jump into a live co-browse session to guide you through everything VidantaWorld has to offer.</p>
     <div class="btn-row">
-        <button class="btn-primary" onclick="Surfly.session().startLeader()">▶ Start Co-Browse Session</button>
+        <button class="btn-primary" onclick="Surfly.session({
+            non_hosts_can_open_tabs: false
+        }).startLeader()">▶ Start Co-Browse Session</button>
         <a class="btn-outline" href="https://app.surfly-us.com/landing/vidavacations/" target="_blank">Launch Landing Page</a>
     </div>
 </div>
@@ -743,7 +745,9 @@ Surfly.init(settings, function (initResult) {
                     link.addEventListener('click', function (e) {
                         e.preventDefault();
                         console.log('Cobrowse link clicked', new Date().toISOString());
-                        Surfly.session().startLeader();
+                        Surfly.session({
+                            non_hosts_can_open_tabs: false
+                        }).startLeader();
                     });
                 }
             }
